@@ -23,14 +23,12 @@ def find_landmarks(args):
 
         input_image = io.imread(input_file)
 
-        preds = fa.get_landmarks(input_image)[-1]
+        preds = fa.get_landmarks_simple(input_image)
+        preds *= args.output_scale
+        preds = preds.detach().cpu().numpy()
 
-        scale = 4
-
-        output_image = cv2.resize(input_image, (0, 0), fx=scale, fy=scale)
+        output_image = cv2.resize(input_image, (0, 0), fx=args.output_scale, fy=args.output_scale)
         output_image = np.ascontiguousarray(output_image[..., ::-1])
-
-        preds *= scale
 
         for i in range(0, preds.shape[0] - 1):
             p0 = tuple(preds[i].astype(int))
@@ -55,7 +53,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_dir", default='test_data', help="Input directory with images (PNG)")
     parser.add_argument("--output_dir", default='output', help="Output directory")
-    parser.add_argument("--output_scale", default=3, help="Output image scale")
+    parser.add_argument("--output_scale", default=4, help="Output image scale")
     args = parser.parse_args()
 
     find_landmarks(args)
