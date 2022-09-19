@@ -109,6 +109,32 @@ class FaceAlignment:
         """
         return self.get_landmarks_from_image(image_or_path, detected_faces, return_bboxes, return_landmark_score)
 
+    def get_landmarks_simple(self, image_or_path):
+
+        image = get_image(image_or_path)
+
+        inp = image
+        scale = 1
+        center = torch.tensor((128.0, 128.0))
+
+        inp = torch.from_numpy(inp.transpose(
+            (2, 0, 1))).float()
+
+        inp = inp.to(self.device)
+        inp.div_(255.0).unsqueeze_(0)
+
+        out = self.face_alignment_net(inp).detach()
+        if self.flip_input:
+            out += flip(self.face_alignment_net(flip(inp)).detach(), is_label=True)
+        out = out.cpu().numpy()
+
+        pts, pts_img, scores = get_preds_fromhm(out, center.numpy(), scale)
+        pts, pts_img = torch.from_numpy(pts), torch.from_numpy(pts_img)
+        pts, pts_img = pts.view(68, 2) * 4, pts_img.view(68, 2)
+
+        return pts
+
+
     @torch.no_grad()
     def get_landmarks_from_image(self, image_or_path, detected_faces=None, return_bboxes=False,
                                  return_landmark_score=False):
@@ -154,8 +180,13 @@ class FaceAlignment:
                 [d[2] - (d[2] - d[0]) / 2.0, d[3] - (d[3] - d[1]) / 2.0])
             center[1] = center[1] - (d[3] - d[1]) * 0.12
             scale = (d[2] - d[0] + d[3] - d[1]) / self.face_detector.reference_scale
-
             inp = crop(image, center, scale)
+
+            cv2.imshow('inp', inp)
+            inp = image
+            scale = 1
+            center = torch.tensor((128.0, 128.0))
+
             inp = torch.from_numpy(inp.transpose(
                 (2, 0, 1))).float()
 
@@ -171,6 +202,15 @@ class FaceAlignment:
             pts, pts_img = torch.from_numpy(pts), torch.from_numpy(pts_img)
             pts, pts_img = pts.view(68, 2) * 4, pts_img.view(68, 2)
             scores = scores.squeeze(0)
+
+            cv2.rectangle(image, (int(d[0]), int(d[1])), (int(d[2]), int(d[3])), (0, 255, 0))
+            cv2.circle(image, tuple(center.cpu().numpy().astype(int)), 2, (0, 255, 0))
+            for i in range(0, pts.shape[0] - 1):
+                p0 = tuple((pts[i].cpu().numpy() + 0*d[:2]).astype(int))
+                cv2.circle(image, p0, 2, (0, 255, 0))
+
+            cv2.imshow('face_and_center', image)
+            cv2.waitKey(0)
 
             if self.landmarks_type == LandmarksType._3D:
                 heatmaps = np.zeros((68, 256, 256), dtype=np.float32)
