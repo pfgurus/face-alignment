@@ -35,20 +35,13 @@ class FaceAlignment:
         self.face_alignment_net.to(device)
         self.face_alignment_net.eval()
 
-    def get_landmarks_simple(self, image):
-        inp = image
-
-        inp = torch.from_numpy(inp.transpose((2, 0, 1))).float()
-
-        inp = inp.to(self.device)
-        inp.div_(255.0).unsqueeze_(0)
-
-        out = self.face_alignment_net(inp).detach()
+    def get_landmarks(self, input):
+        heatmaps = self.face_alignment_net(input)
         if self.flip_input:
-            out += flip(self.face_alignment_net(flip(inp)).detach(), is_label=True)
-        out = out.cpu().numpy()
+            heatmaps += flip(self.face_alignment_net(flip(input)), is_label=True)
+        heatmaps = heatmaps.detach().cpu().numpy()
 
-        pts = get_preds_fromhm(out)
+        pts = get_preds_fromhm(heatmaps)
         pts = torch.from_numpy(pts) * 4
 
         return pts
