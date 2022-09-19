@@ -145,43 +145,6 @@ def crop(image, center, scale, resolution=256.0):
     return newImg
 
 
-# @jit(nopython=True)
-def transform_np(point, center, scale, resolution, invert=False):
-    """Generate and affine transformation matrix.
-
-    Given a set of points, a center, a scale and a targer resolution, the
-    function generates and affine transformation matrix. If invert is ``True``
-    it will produce the inverse transformation.
-
-    Arguments:
-        point {numpy.array} -- the input 2D point
-        center {numpy.array} -- the center around which to perform the transformations
-        scale {float} -- the scale of the face/object
-        resolution {float} -- the output resolution
-
-    Keyword Arguments:
-        invert {bool} -- define wherever the function should produce the direct or the
-        inverse transformation matrix (default: {False})
-    """
-    _pt = np.ones(3)
-    _pt[0] = point[0]
-    _pt[1] = point[1]
-
-    h = 200.0 * scale
-    t = np.eye(3)
-    t[0, 0] = resolution / h
-    t[1, 1] = resolution / h
-    t[0, 2] = resolution * (-center[0] / h + 0.5)
-    t[1, 2] = resolution * (-center[1] / h + 0.5)
-
-    if invert:
-        t = np.ascontiguousarray(np.linalg.pinv(t))
-
-    new_point = np.dot(t, _pt)[0:2]
-
-    return new_point.astype(np.int32)
-
-
 def get_preds_fromhm(hm, center=None, scale=None):
     """Obtain (x,y) coordinates given a set of N heatmaps. If the center
     and the scale is provided the function will return the points also in
@@ -197,14 +160,13 @@ def get_preds_fromhm(hm, center=None, scale=None):
     B, C, H, W = hm.shape
     hm_reshape = hm.reshape(B, C, H * W)
     idx = np.argmax(hm_reshape, axis=-1)
-    scores = np.take_along_axis(hm_reshape, np.expand_dims(idx, axis=-1), axis=-1).squeeze(-1)
-    preds, preds_orig = _get_preds_fromhm(hm, idx, center, scale)
+    preds = _get_preds_fromhm(hm, idx)
 
-    return preds, preds_orig, scores
+    return preds
 
 
 # @jit(nopython=True)
-def _get_preds_fromhm(hm, idx, center=None, scale=None):
+def _get_preds_fromhm(hm, idx):
     """Obtain (x,y) coordinates given a set of N heatmaps and the
     coresponding locations of the maximums. If the center
     and the scale is provided the function will return the points also in
@@ -235,14 +197,7 @@ def _get_preds_fromhm(hm, idx, center=None, scale=None):
 
     preds -= 0.5
 
-    preds_orig = np.zeros_like(preds)
-    if center is not None and scale is not None:
-        for i in range(B):
-            for j in range(C):
-                preds_orig[i, j] = transform_np(
-                    preds[i, j], center, scale, H, True)
-
-    return preds, preds_orig
+    return preds
 
 
 def create_target_heatmap(target_landmarks, centers, scales):

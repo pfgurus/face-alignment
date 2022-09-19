@@ -16,7 +16,7 @@ def find_landmarks(args):
 
         input_image = io.imread(input_file)
 
-        preds = fa.get_landmarks_simple(input_image)
+        preds = fa.get_landmarks_simple(input_image)[0]
         preds *= args.output_scale
         preds = preds.detach().cpu().numpy()
 

@@ -35,16 +35,10 @@ class FaceAlignment:
         self.face_alignment_net.to(device)
         self.face_alignment_net.eval()
 
-    def get_landmarks_simple(self, image_or_path):
-
-        image = get_image(image_or_path)
-
+    def get_landmarks_simple(self, image):
         inp = image
-        scale = 1
-        center = torch.tensor((128.0, 128.0))
 
-        inp = torch.from_numpy(inp.transpose(
-            (2, 0, 1))).float()
+        inp = torch.from_numpy(inp.transpose((2, 0, 1))).float()
 
         inp = inp.to(self.device)
         inp.div_(255.0).unsqueeze_(0)
@@ -54,8 +48,7 @@ class FaceAlignment:
             out += flip(self.face_alignment_net(flip(inp)).detach(), is_label=True)
         out = out.cpu().numpy()
 
-        pts, pts_img, scores = get_preds_fromhm(out, center.numpy(), scale)
-        pts, pts_img = torch.from_numpy(pts), torch.from_numpy(pts_img)
-        pts, pts_img = pts.view(68, 2) * 4, pts_img.view(68, 2)
+        pts = get_preds_fromhm(out)
+        pts = torch.from_numpy(pts) * 4
 
         return pts
