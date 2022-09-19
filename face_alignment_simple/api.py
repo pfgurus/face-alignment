@@ -15,10 +15,8 @@ default_model_urls = {
 
 
 class FaceAlignment:
-    def __init__(self, device='cuda', flip_input=False, verbose=False):
+    def __init__(self, device='cuda'):
         self.device = device
-        self.flip_input = flip_input
-        self.verbose = verbose
 
         if LooseVersion(torch.__version__) < LooseVersion('1.5.0'):
             raise ImportError(f'Unsupported pytorch version detected. Minimum supported version of pytorch: 1.5.0\
@@ -37,11 +35,7 @@ class FaceAlignment:
 
     def get_landmarks(self, input):
         heatmaps = self.face_alignment_net(input)
-        if self.flip_input:
-            heatmaps += flip(self.face_alignment_net(flip(input)), is_label=True)
         heatmaps = heatmaps.detach().cpu().numpy()
-
-        pts = get_preds_fromhm(heatmaps)
-        pts = torch.from_numpy(pts) * 4
-
-        return pts
+        landmarks = get_preds_fromhm(heatmaps)
+        landmarks = torch.from_numpy(landmarks) * 4
+        return landmarks
