@@ -9,15 +9,8 @@ import cv2
 
 
 def find_landmarks(args):
-    # Optionally set detector and some additional detector parameters
-    face_detector = 'sfd'
-    face_detector_kwargs = {
-        "filter_threshold": 0.8
-    }
-
     # Run the 3D face alignment on a test image, without CUDA.
-    fa = face_alignment_simple.FaceAlignment(face_alignment_simple.LandmarksType._2D, device='cpu', flip_input=True,
-                                      face_detector=face_detector, face_detector_kwargs=face_detector_kwargs)
+    fa = face_alignment_simple.FaceAlignment(device='cpu', flip_input=True)
     os.makedirs(args.output_dir, exist_ok=True)
     for input_file in glob.glob(f'{args.input_dir}/*.png'):
 
