@@ -3,6 +3,7 @@ import os
 import argparse
 import numpy as np
 import torch
+from common import geometry
 
 import face_alignment_simple
 from skimage import io
@@ -22,16 +23,18 @@ def find_landmarks(args):
         input = input.to(device)
         input.unsqueeze_(0)
 
-        preds = fa.get_landmarks(input)[0]
-        preds *= args.output_scale
-        preds = preds.detach().cpu().numpy()
+        landmarks = fa.get_landmarks(input)
+        landmarks = geometry.norm_to_pixel2(landmarks, input.shape[-2:])
+
+        landmarks *= args.output_scale
+        landmarks = landmarks.detach().cpu().numpy()[0]
 
         output_image = cv2.resize(input_image, (0, 0), fx=args.output_scale, fy=args.output_scale)
         output_image = np.ascontiguousarray(output_image[..., ::-1])
 
-        for i in range(0, preds.shape[0] - 1):
-            p0 = tuple(preds[i].astype(int))
-            # p1 = tuple(preds[i + 1].astype(int))
+        for i in range(0, landmarks.shape[0] - 1):
+            p0 = tuple(landmarks[i].astype(int))
+            # p1 = tuple(landmarks[i + 1].astype(int))
             # cv2.line(output_image, p0, p1, (0, 255, 0))
             cv2.circle(output_image, p0, 2, (0, 255, 0))
             text_params = {
