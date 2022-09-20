@@ -1,22 +1,48 @@
+import os
+import sys
+import errno
 import torch
-import warnings
-from enum import IntEnum
-from skimage import io
-import numpy as np
-from distutils.version import LooseVersion
 import torch.nn.functional as F
 
-from .utils import *
+from urllib.parse import urlparse
+from torch.hub import download_url_to_file, HASH_REGEX, get_dir
 
 from common import geometry
 
-default_model_urls = {
-    '2DFAN-4': 'https://www.adrianbulat.com/downloads/python-fan/2DFAN4-cd938726ad.zip',
-}
+
+def load_file_from_url(url, model_dir=None, progress=True, check_hash=False, file_name=None):
+    if model_dir is None:
+        hub_dir = get_dir()
+        model_dir = os.path.join(hub_dir, 'checkpoints')
+
+    try:
+        os.makedirs(model_dir)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            # Directory already exists, ignore.
+            pass
+        else:
+            # Unexpected OSError, re-raise.
+            raise
+
+    parts = urlparse(url)
+    filename = os.path.basename(parts.path)
+    if file_name is not None:
+        filename = file_name
+    cached_file = os.path.join(model_dir, filename)
+    if not os.path.exists(cached_file):
+        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
+        hash_prefix = None
+        if check_hash:
+            r = HASH_REGEX.search(filename)  # r is Optional[Match[str]]
+            hash_prefix = r.group(1) if r else None
+        download_url_to_file(url, cached_file, hash_prefix, progress=progress)
+
+    return cached_file
 
 
 class FaceAlignment:
-    def __init__(self, device='cuda', softmax_temperature=0.1, heatmap_to_xy_scale_factor=1.15):
+    def __init__(self, model_path=None, device='cuda', softmax_temperature=0.1, heatmap_to_xy_scale_factor=1.15):
         """
         A simplified and efficient modification of the face alignment algorithm.
 
@@ -35,18 +61,13 @@ class FaceAlignment:
         self._softmax_temperature = softmax_temperature
         self._heatmap_to_xy_scale_factor = heatmap_to_xy_scale_factor
 
-        if LooseVersion(torch.__version__) < LooseVersion('1.5.0'):
-            raise ImportError(f'Unsupported pytorch version detected. Minimum supported version of pytorch: 1.5.0\
-                            Either upgrade (recommended) your pytorch setup, or downgrade to face-alignment 1.2.0')
-
-        network_size = 4  # LARGE
-
         if 'cuda' in device:
             torch.backends.cudnn.benchmark = True
 
-        # Initialise the face aligment networks
-        network_name = '2DFAN-' + str(network_size)
-        self.face_alignment_net = torch.jit.load(load_file_from_url(default_model_urls[network_name]))
+        if model_path is None:
+            model_path = load_file_from_url('https://www.adrianbulat.com/downloads/python-fan/2DFAN4-cd938726ad.zip')
+
+        self.face_alignment_net = torch.jit.load(model_path)
         self.face_alignment_net.to(device)
         self.face_alignment_net.eval()
 
