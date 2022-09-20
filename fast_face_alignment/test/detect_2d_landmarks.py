@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from common import geometry
 
-import face_alignment_simple
+from fast_face_alignment import fast_face_alignment
 from skimage import io
 import cv2
 
@@ -13,7 +13,7 @@ import cv2
 def find_landmarks(args):
     # Run the 3D face alignment on a test image, without CUDA.
     device = 'cuda'
-    fa = face_alignment_simple.FaceAlignment(device=device)
+    fa = fast_face_alignment.FaceAlignment(device=device)
     os.makedirs(args.output_dir, exist_ok=True)
     for input_file in glob.glob(f'{args.input_dir}/*.png'):
 

@@ -13,7 +13,7 @@ from common import geometry
 class FaceAlignment:
     def __init__(self, checkpoint=None, device='cuda', softmax_temperature=0.1, heatmap_to_xy_scale_factor=1.15):
         """
-        A simplified and efficient modification of the face alignment algorithm.
+        An efficient and simplified version of the face-alignment library. May be slightly less accurate.
 
         The most important modifications:
         - support only 2d landmarks
@@ -43,7 +43,6 @@ class FaceAlignment:
         self._grid = geometry.make_coordinate_grid2((64, 64), device=device)
 
     def get_landmarks(self, input):
-
         prediction = self.face_alignment_net(input)
         prediction_shape = prediction.shape
         heatmap = prediction.reshape(prediction_shape[0], prediction_shape[1], -1)
