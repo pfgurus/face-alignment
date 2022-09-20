@@ -32,10 +32,8 @@ def find_landmarks(args):
         output_image = cv2.resize(input_image, (0, 0), fx=args.output_scale, fy=args.output_scale)
         output_image = np.ascontiguousarray(output_image[..., ::-1])
 
-        for i in range(0, landmarks.shape[0] - 1):
+        for i in range(0, landmarks.shape[0]):
             p0 = tuple(landmarks[i].astype(int))
-            # p1 = tuple(landmarks[i + 1].astype(int))
-            # cv2.line(output_image, p0, p1, (0, 255, 0))
             cv2.circle(output_image, p0, 2, (0, 255, 0))
             text_params = {
                 'fontFace': cv2.FONT_HERSHEY_SIMPLEX,
@@ -55,7 +53,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_dir", default='test_data', help="Input directory with images (PNG)")
     parser.add_argument("--output_dir", default='output', help="Output directory")
-    parser.add_argument("--output_scale", default=4, help="Output image scale")
+    parser.add_argument("--output_scale", default=4, type=float, help="Output image scale")
     args = parser.parse_args()
 
     find_landmarks(args)
