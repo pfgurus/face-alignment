@@ -11,7 +11,7 @@ from common import geometry
 
 
 class FaceAlignment:
-    def __init__(self, checkpoint=None, device='cuda', softmax_temperature=0.1, heatmap_to_xy_scale_factor=1.15):
+    def __init__(self, checkpoint=None, softmax_temperature=0.1, heatmap_to_xy_scale_factor=1.15):
         """
         An efficient and simplified version of the face-alignment library. May be slightly less accurate.
 
@@ -26,21 +26,16 @@ class FaceAlignment:
         heatmap to x, y conversion.
 
         """
-        self.device = device
         self._softmax_temperature = softmax_temperature
         self._heatmap_to_xy_scale_factor = heatmap_to_xy_scale_factor
-
-        if 'cuda' in device:
-            torch.backends.cudnn.benchmark = True
+        self._grid = geometry.make_coordinate_grid2((64, 64))
 
         if checkpoint is None:
             checkpoint = load_file_from_url('https://www.adrianbulat.com/downloads/python-fan/2DFAN4-cd938726ad.zip')
 
-        self.face_alignment_net = torch.jit.load(checkpoint)
-        self.face_alignment_net.to(device)
+        self.face_alignment_net = torch.jit.load(checkpoint, map_location=self._grid.device)
         self.face_alignment_net.eval()
 
-        self._grid = geometry.make_coordinate_grid2((64, 64), device=device)
 
     def get_landmarks(self, input):
         prediction = self.face_alignment_net(input)
